@@ -18,8 +18,11 @@ library(xlsx)
 library(gdata)
 library(readxl)
 library(htmlwidgets)
+library(wordcloud)
 
-workdir <- "/srv/shiny-server/cns/BadogueExcel"
+#workdir <- "/srv/shiny-server/cns/BadogueExcel"
+workdir <- "/home/cdesantana/DataSCOUT/Objectiva/BadogueExcel"
+badwords <- c("scontent.xx.fbcdn.net","https","oh","oe","pra"," v ","como","para","de","do","da","das","dos","isso","esse","nisso","nesse","aquele","nesses","aqueles","aquela","aquelas","que","q","é","sr","governador","rui","costa","senhor")
 
 getTidySentimentos <- function(file){
    polaridade <- toupper(file$Polaridade)
@@ -29,22 +32,23 @@ getTidySentimentos <- function(file){
    tokenInfo <- summary(myCorpus)
    kwic(myCorpus, "gestor")
    myStemMat <- dfm(myCorpus, remove = stopwords("portuguese"), stem = TRUE, remove_punct = TRUE)
-   byPolaridadeDfm <- dfm(myCorpus, groups = polaridade, remove = c(stopwords("portuguese"),"scontent.xx.fbcdn.net","https","oh","oe","pra"," v ","como","para","de","do","da","das","dos","isso","esse","nisso","nesse","aquele","nesses","aqueles","aquela","aquelas","que"), remove_punct = TRUE)
+   byPolaridadeDfm <- dfm(myCorpus, groups = polaridade, remove = c(stopwords("portuguese"),badwords), remove_punct = TRUE)
    ap_td <- tidy(byPolaridadeDfm)
    names(ap_td) <- c("sentimento","term","count")
    return(ap_td);
 }
 
-getTidyWords <- function(text){
+getDFMatrix <- function(text){
    myCorpus <- corpus(text)
    metadoc(myCorpus, "language") <- "portuguese"
    tokenInfo <- summary(myCorpus)
    kwic(myCorpus, "gestor")
    myStemMat <- dfm(myCorpus, remove = stopwords("portuguese"), stem = TRUE, remove_punct = TRUE)
-   mydfm <- dfm(myCorpus, remove = c(stopwords("portuguese"),"scontent.xx.fbcdn.net","https","oh","oe","pra"," v ","como","para","de","do","da","das","dos","isso","esse","nisso","nesse","aquele","nesses","aqueles","aquela","aquelas","que"), remove_punct = TRUE, remove_numbers= TRUE)
-   ap_td <- tidy(mydfm)
-   names(ap_td) <- c("sentimento","term","count")
-   return(ap_td);
+   mydfm <- dfm(myCorpus, remove = c(stopwords("portuguese"),badwords), remove_punct = TRUE, remove_numbers= TRUE)
+   return(mydfm)
+#   ap_td <- tidy(mydfm)
+#   names(ap_td) <- c("sentimento","term","count")
+#   return(ap_td);
 }
 
 options(shiny.fullstacktrace = TRUE)
@@ -63,67 +67,70 @@ server <- function(input, output) {
       
       mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
       id_post <- mypage$id[which(as.character(mypage$link)%in%url)]
-      
+   
       post_dados <- getPost(id_post, token=fb_oauth, n= 10000)
-      text <- post$comments$message
-      words_td <- getTidyWords(text);
-      p <- words_td %>%
-            count(sentimento, term, wt = count) %>%
-            ungroup() %>%
-            filter(n >= 150) %>%
-            mutate(term = reorder(term, n)) %>%
-            ggplot(aes(term, n, fill = sentimento)) +
-              geom_bar(stat="identity", fill="gray50") +
-              theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-              ylab("Numero de ocorrencias") +
-              xlab("Palavras") + coord_flip()
-      print(p);
+      text <- post_dados$comments$message
+      mydfm <- getDFMatrix(text);
+      words_td <- topfeatures(mydfm, 20)
+      ggplot() + 
+         geom_bar(stat = "identity", 
+                        aes(x = reorder(names(words_td),as.numeric(words_td)), y = as.numeric(words_td)),
+                        fill = "magenta") + 
+         ylab("Numero de ocorrencias") +
+         xlab("") +
+         geom_text( aes (x = reorder(names(words_td),as.numeric(words_td)), y = words_td, label = words_td ) , vjust = 0, hjust = 0, size = 2 ) + 
+         coord_flip()
   }
 
   output$downloadPalavrasData <- downloadHandler(
     filename = function() {
-      paste("palavras.png", sep = "")
+      paste("listadepalavras.png", sep = "")
     },
     content = function(file) {
       device <- function(..., width, height) {
         grDevices::png(..., width = width, height = height,
                        res = 300, units = "in")
       }
-      ggsave(file, plot = plotPalavras2(), device = device)
+      ggsave(file, plot = plotPalavras(), device = device)
 
     }
   )
 
-  plotPalavras2 = function(){
-      url <- input$urlpost
-      id_pagina <- input$fbid 
-      data <- input$date
-      
-      # command file.path already controls for the OS
-      load(paste(workdir,"/fb_oauth",sep=""));
-      
-      data_inicio <- ymd(as.character(data)) + days(-2);
-      data_final <- ymd(as.character(data)) + days(2);
-      
-      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
-      id_post <- mypage$id[which(as.character(mypage$link)%in%url)]
-      
-      post_dados <- getPost(id_post, token=fb_oauth, n= 10000)
-      text <- post_dados$comments$message
-      words_td <- getTidyWords(text);
+  output$downloadWordcloudData <- downloadHandler(
+     filename = function() {
+        paste("wordcloud.png", sep = "")
+     },
+     content = function(file) {
+        device <- function(..., width, height) {
+           grDevices::png(..., width = width, height = height,
+                          res = 300, units = "in")
+        }
+        ggsave(file, plot = plotWordcloud(), device = device)
+        
+     }     
+  )  
+  
+  plotWordcloud = function(){
+     url <- input$urlpost
+     id_pagina <- input$fbid 
+     data <- input$date
      
-      p <- words_td %>%
-            count(sentimento, term, wt = count) %>%
-            ungroup() %>%
-            filter(n >= 150) %>%
-            mutate(term = reorder(term, n)) %>%
-            ggplot(aes(term, n, fill = sentimento)) +
-              geom_bar(stat="identity", fill="gray50") +
-              theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-              ylab("Numero de ocorrencias") +
-              xlab("Palavras") + coord_flip()
-      print(p);
-#      plot(1:1000,log(1:1000));
+     # command file.path already controls for the OS
+     load(paste(workdir,"/fb_oauth",sep=""));
+     
+     data_inicio <- ymd(as.character(data)) + days(-2);
+     data_final <- ymd(as.character(data)) + days(2);
+     
+     mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
+     id_post <- mypage$id[which(as.character(mypage$link)%in%url)]
+     
+     post_dados <- getPost(id_post, token=fb_oauth, n= 10000)
+     text <- post_dados$comments$message
+     mydfm <- getDFMatrix(text);
+     set.seed(100)
+     textplot_wordcloud(mydfm, min.freq = 3, random.order = FALSE,
+                        rot.per = .25, 
+                        colors = RColorBrewer::brewer.pal(8,"Dark2"))
   }
 #####
 
