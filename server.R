@@ -19,6 +19,8 @@ library(gdata)
 library(readxl)
 library(htmlwidgets)
 library(wordcloud)
+library(plotly)
+library(ggrepel)
 
 #workdir <- "/srv/shiny-server/cns/BadogueExcel"
 workdir <- "/home/cdesantana/DataSCOUT/Objectiva/BadogueExcel"
@@ -96,19 +98,50 @@ server <- function(input, output) {
     }
   )
 
-  output$downloadWordcloudData <- downloadHandler(
+  #####
+  
+  plotReactions = function(){
+     url <- input$urlpost
+     id_pagina <- input$fbid 
+     data <- input$date
+     
+     # command file.path already controls for the OS
+     load(paste(workdir,"/fb_oauth",sep=""));
+     
+     data_inicio <- ymd(as.character(data)) + days(-2);
+     data_final <- ymd(as.character(data)) + days(2);
+     
+     mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
+     id_post <- mypage$id[which(as.character(mypage$link)%in%url)]
+     
+     post_reactions <- getReactions(id_post, token=fb_oauth)
+     counts <- as.numeric(post_reactions[,-1])
+     reactions <- c("Likes","Loves","Haha","Wow","Sad", "Angry")
+     percent <- signif(100*(counts/sum(counts)),1)
+     ggplot() + 
+        geom_bar(stat="identity", aes(x=reactions, y = counts)) + 
+        xlab("Reações") + 
+        ylab("Número de Ocorrências") + 
+        coord_flip()
+  }
+  
+  output$downloadReactionsData <- downloadHandler(
      filename = function() {
-        paste("wordcloud.png", sep = "")
+        paste("reactions.png", sep = "")
      },
      content = function(file) {
         device <- function(..., width, height) {
            grDevices::png(..., width = width, height = height,
                           res = 300, units = "in")
         }
-        ggsave(file, plot = plotWordcloud(), device = device)
+        ggsave(file, plot = plotReactions(), device = device)
         
      }     
   )  
+  
+  
+  
+#####
   
   plotWordcloud = function(){
      url <- input$urlpost
@@ -132,6 +165,21 @@ server <- function(input, output) {
                         rot.per = .25, 
                         colors = RColorBrewer::brewer.pal(8,"Dark2"))
   }
+  
+  output$downloadWordcloudData <- downloadHandler(
+     filename = function() {
+        paste("wordcloud.png", sep = "")
+     },
+     content = function(file) {
+        device <- function(..., width, height) {
+           grDevices::png(..., width = width, height = height,
+                          res = 300, units = "in")
+        }
+        ggsave(file, plot = plotWordcloud(), device = device)
+        
+     }     
+  )  
+  
 #####
 
   output$downloadExcelData <- downloadHandler(
@@ -163,18 +211,3 @@ server <- function(input, output) {
       saveWorkbook(wb, file)
     })
 }
-###### 
-  # Reactive value for selected dataset ----
-#  datasetInput <- reactive({
-#    switch(input$dataset,
-#           "rock" = rock,
-#           "pressure" = pressure,
-#           "cars" = cars
-#    )
-#  })
-
-  # Table of selected dataset ----
-#  output$table <- renderTable({
-#    datasetInput()
-#  })
-

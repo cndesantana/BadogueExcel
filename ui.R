@@ -30,6 +30,7 @@ ui <- fluidPage(
 
       # Button
       downloadButton("downloadExcelData", "Download Excel"),
+      downloadButton("downloadReactionsData", "Download Reações"),
       downloadButton("downloadPalavrasData", "Download Lista de Palavras"),
       downloadButton("downloadWordcloudData", "Download Nuvem de Palavras")
 
