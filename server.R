@@ -18,9 +18,11 @@ library(xlsx)
 library(gdata)
 library(readxl)
 library(htmlwidgets)
-library(wordcloud)
-library(plotly)
-library(ggrepel)
+library(httr)
+
+getFBID <- function(fburl){
+   return(unlist(strsplit(httr::POST(url='https://findmyfbid.com',body=list(url = fburl), encode="json")$headers$`amp-redirect-to`,'/'))[5])
+   }
 
 #workdir <- "/srv/shiny-server/cns/BadogueExcel"
 workdir <- "/home/cdesantana/DataSCOUT/Objectiva/BadogueExcel"
@@ -58,7 +60,8 @@ options(shiny.fullstacktrace = TRUE)
 server <- function(input, output) {
   plotPalavras = function() {
       url <- input$urlpost
-      id_pagina <- input$fbid 
+#      id_pagina <- input$fbid 
+      id_pagina <- getFBID(url)
       data <- input$date
       
       # command file.path already controls for the OS
@@ -102,7 +105,8 @@ server <- function(input, output) {
   
   plotReactions = function(){
      url <- input$urlpost
-     id_pagina <- input$fbid 
+#     id_pagina <- input$fbid 
+     id_pagina <- getFBID(url)
      data <- input$date
      
      # command file.path already controls for the OS
@@ -145,7 +149,8 @@ server <- function(input, output) {
   
   plotWordcloud = function(){
      url <- input$urlpost
-     id_pagina <- input$fbid 
+#     id_pagina <- input$fbid 
+     id_pagina <- getFBID(url)
      data <- input$date
      
      # command file.path already controls for the OS
@@ -188,7 +193,8 @@ server <- function(input, output) {
     },
     content = function(file) {
       url <- input$urlpost
-      id_pagina <- input$fbid 
+#      id_pagina <- input$fbid 
+      id_pagina <- getFBID(url)
       data <- input$date
       
       # command file.path already controls for the OS

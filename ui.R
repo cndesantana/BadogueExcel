@@ -15,10 +15,10 @@ ui <- fluidPage(
                    "Escreva a URL do post que deseja analisar:", 
                    value = "http://..."
          ),
-         textInput("fbid", 
-                   "Escreva o ID da página do Facebook onde foi publicado esse post:", 
-                   value = "acesse http://findmyfbid.com/ para obter o ID..."
-         ),
+         # textInput("fbid", 
+         #           "Escreva o ID da página do Facebook onde foi publicado esse post:", 
+         #           value = "acesse http://findmyfbid.com/ para obter o ID..."
+         # ),
          dateInput('date',
                    label = 'Selecione a data para a qual deseja analisar o post:',
                    value = Sys.Date()
