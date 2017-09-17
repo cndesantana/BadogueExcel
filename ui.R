@@ -32,8 +32,10 @@ ui <- fluidPage(
       downloadButton("downloadExcelData", "Download Excel"),
       downloadButton("downloadReactionsData", "Download Reações"),
       downloadButton("downloadPalavrasData", "Download Lista de Palavras"),
-      downloadButton("downloadWordcloudData", "Download Nuvem de Palavras")
-
+      downloadButton("downloadWordcloudData", "Download Nuvem de Palavras"),
+      downloadButton("downloadUsuariosMaisParticipativos", "Download Lista de usuários que mais comentam"),
+      downloadButton("downloadUsuariosMaisCurtidos", "Download Lista de usuários mais curtidos"),
+      downloadButton("downloadPalavrasUsuariosMaisParticipativos", "Download Lista palavras usadas por usuários que mais comentam")
     ),
 
     # Main panel for displaying outputs ----

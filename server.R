@@ -58,6 +58,118 @@ getDFMatrix <- function(text){
 options(shiny.fullstacktrace = TRUE)
 
 server <- function(input, output) {
+
+   plotPalavrasUsuariosMaisParticipativos = function() {
+      url <- input$urlpost
+      id_pagina <- getFBID(url)
+      data <- input$date
+      
+      # command file.path already controls for the OS
+      load(paste(workdir,"/fb_oauth",sep=""));
+      
+      data_inicio <- ymd(as.character(data)) + days(-2);
+      data_final <- ymd(as.character(data)) + days(2);
+      
+      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
+      id_post <- mypage$id[which(as.character(mypage$link)%in%url)]
+   
+      post_dados <- getPost(id_post, token=fb_oauth, n= 10000, reactions=TRUE)
+ 
+      autores <- post_dados$comments %>% 
+         dplyr::select(from_name) %>%
+         group_by(from_name) %>% 
+         arrange(from_name) %>%
+         summarise(total = sum(n())) %>%
+         arrange(total) %>%
+         tail(50) %>%
+         dplyr::select(from_name)
+ 
+      text <- post_dados$comments %>%
+         filter(as.character(from_name) %in% autores$from_name) %>%
+         dplyr::select(message)
+ 
+      mydfm <- getDFMatrix(text$message);
+      words_td <- topfeatures(mydfm, 50)
+      ggplot() +
+         geom_bar(stat = "identity",
+                        aes(x = reorder(names(words_td),as.numeric(words_td)), y = as.numeric(words_td)),
+                        fill = "magenta") +
+         ylab("Numero de ocorrencias") +
+         xlab("") +
+         geom_text( aes (x = reorder(names(words_td),as.numeric(words_td)), y = words_td, label = words_td ) , vjust = 0, hjust = 0, size = 2 ) +
+         coord_flip()
+   }
+
+   plotUsuariosMaisParticipativos = function() {
+      url <- input$urlpost
+      id_pagina <- getFBID(url)
+      data <- input$date
+      
+      # command file.path already controls for the OS
+      load(paste(workdir,"/fb_oauth",sep=""));
+      
+      data_inicio <- ymd(as.character(data)) + days(-2);
+      data_final <- ymd(as.character(data)) + days(2);
+      
+      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
+      id_post <- mypage$id[which(as.character(mypage$link)%in%url)]
+   
+      post_dados <- getPost(id_post, token=fb_oauth, n= 10000, reactions=TRUE)
+
+      post_dados$comments %>% 
+         dplyr::select(from_name) %>%
+         group_by(from_name) %>% 
+         arrange(from_name) %>%
+         summarise(total = sum(n())) %>%
+         arrange(total) %>%
+         tail(50) %>%
+         ggplot() + 
+         geom_bar(stat = "identity", 
+                  aes(x = reorder(from_name,as.numeric(total)), y = as.numeric(total))
+         ) + 
+         ylab("Numero de Comentários") +
+         xlab("") +
+         geom_text( aes (x = reorder(from_name,as.numeric(total)), y = as.numeric(total), label = as.numeric(total) ) , vjust = 0, hjust = 0, size = 2 ) + 
+         coord_flip()
+   }
+
+
+   plotUsuariosMaisCurtidos = function() {
+      url <- input$urlpost
+      id_pagina <- getFBID(url)
+      data <- input$date
+      
+      # command file.path already controls for the OS
+      load(paste(workdir,"/fb_oauth",sep=""));
+      
+      data_inicio <- ymd(as.character(data)) + days(-2);
+      data_final <- ymd(as.character(data)) + days(2);
+      
+      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
+      id_post <- mypage$id[which(as.character(mypage$link)%in%url)]
+   
+      post_dados <- getPost(id_post, token=fb_oauth, n= 10000, reactions=TRUE)
+
+      post_dados$comments %>% 
+         dplyr::select(from_name,likes_count) %>%
+         group_by(from_name) %>% 
+         arrange(from_name, likes_count) %>%
+         summarise(total = sum(as.numeric(likes_count))) %>%
+         arrange(total) %>%
+         filter(total >= 1) %>%
+         tail(50) %>%
+         ggplot() + 
+         geom_bar(stat = "identity", 
+                  aes(x = reorder(from_name,as.numeric(total)), y = as.numeric(total))
+         ) + 
+         ylab("Numero de Curtidas") +
+         xlab("") +
+         geom_text( aes (x = reorder(from_name,as.numeric(total)), y = as.numeric(total), label = as.numeric(total) ) , vjust = 0, hjust = 0, size = 2 ) + 
+         coord_flip()
+   }
+
+
+
   plotPalavras = function() {
       url <- input$urlpost
 #      id_pagina <- input$fbid 
@@ -76,7 +188,7 @@ server <- function(input, output) {
       post_dados <- getPost(id_post, token=fb_oauth, n= 10000)
       text <- post_dados$comments$message
       mydfm <- getDFMatrix(text);
-      words_td <- topfeatures(mydfm, 20)
+      words_td <- topfeatures(mydfm, 50)
       ggplot() + 
          geom_bar(stat = "identity", 
                         aes(x = reorder(names(words_td),as.numeric(words_td)), y = as.numeric(words_td)),
@@ -184,6 +296,51 @@ server <- function(input, output) {
         
      }     
   )  
+
+  output$downloadUsuariosMaisParticipativos <- downloadHandler(
+     filename = function() {
+        paste("usuariosmaisparticipativos.png", sep = "")
+     },
+     content = function(file) {
+        device <- function(..., width, height) {
+           grDevices::png(..., width = width, height = height,
+                          res = 300, units = "in")
+        }
+        ggsave(file, plot = plotUsuariosMaisParticipativos(), device = device)
+        
+     }     
+  )  
+
+  output$downloadPalavrasUsuariosMaisParticipativos <- downloadHandler(
+     filename = function() {
+        paste("palavrasusuariosmaisparticipativos.png", sep = "")
+     },
+     content = function(file) {
+        device <- function(..., width, height) {
+           grDevices::png(..., width = width, height = height,
+                          res = 300, units = "in")
+        }
+        ggsave(file, plot = plotPalavrasUsuariosMaisParticipativos(), device = device)
+        
+     }     
+  )  
+
+
+  output$downloadUsuariosMaisCurtidos <- downloadHandler(
+     filename = function() {
+        paste("usuariosmaiscurtidos.png", sep = "")
+     },
+     content = function(file) {
+        device <- function(..., width, height) {
+           grDevices::png(..., width = width, height = height,
+                          res = 300, units = "in")
+        }
+        ggsave(file, plot = plotUsuariosMaisCurtidos(), device = device)
+        
+     }     
+  )  
+
+
   
 #####
 
