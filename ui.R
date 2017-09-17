@@ -29,10 +29,13 @@ ui <- fluidPage(
 #                  choices = c("rock", "pressure", "cars")),
 
       # Button
+   tags$hr("Excel",br()),
       downloadButton("downloadExcelData", "Download Excel"),
+   tags$hr("Reações e Palavras gerais",br()),
       downloadButton("downloadReactionsData", "Download Reações"),
       downloadButton("downloadPalavrasData", "Download Lista de Palavras"),
       downloadButton("downloadWordcloudData", "Download Nuvem de Palavras"),
+   tags$hr("Usuários Participativos",br()),
       downloadButton("downloadUsuariosMaisParticipativos", "Download Lista de usuários que mais comentam"),
       downloadButton("downloadUsuariosMaisCurtidos", "Download Lista de usuários mais curtidos"),
       downloadButton("downloadPalavrasUsuariosMaisParticipativos", "Download Lista palavras usadas por usuários que mais comentam")
