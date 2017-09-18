@@ -59,6 +59,189 @@ options(shiny.fullstacktrace = TRUE)
 
 server <- function(input, output) {
 
+   plotComparacaoComentarios = function() {
+      url <- input$urlpost
+      id_pagina <- getFBID(url)
+      data <- input$date
+      
+      # command file.path already controls for the OS
+      load(paste(workdir,"/fb_oauth",sep=""));
+      
+      data_inicio <- ymd(as.character(data)) + days(-3);
+      data_final <- ymd(as.character(data)) + days(3);
+      
+      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
+      nposts <- length(mypage$link)
+      pos_post <- which(as.character(mypage$link)%in%url)
+      comments_count <- mypage$comments_count
+      
+      ggplot() +
+         geom_bar(stat = "identity",
+                  aes(x = reorder(1:nposts,as.numeric(comments_count)), 
+                      y = as.numeric(comments_count)),
+                  fill = ifelse(levels(reorder(1:nposts,as.numeric(comments_count)))==pos_post,"green","grey50")) +
+         theme(axis.text.x=element_blank(),
+               axis.ticks.x=element_blank()) +
+         ylab("Numero de comentários") +
+         xlab("Posts") +
+         geom_text( aes (x = reorder(1:nposts,as.numeric(comments_count)), y = as.numeric(comments_count), label = as.numeric(comments_count) ) , vjust = 0, hjust = 0, size = 2 )
+
+   }
+   
+   plotPalavrasUsuariosAngry = function() {
+      url <- input$urlpost
+      id_pagina <- getFBID(url)
+      data <- input$date
+      
+      # command file.path already controls for the OS
+      load(paste(workdir,"/fb_oauth",sep=""));
+      
+      data_inicio <- ymd(as.character(data)) + days(-2);
+      data_final <- ymd(as.character(data)) + days(2);
+      
+      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
+      id_post <- mypage$id[which(as.character(mypage$link)%in%url)]
+      
+      post_dados <- getPost(id_post, token=fb_oauth, n= 10000, reactions=TRUE)
+         
+      ids_reaction <- post_dados$reactions %>% 
+         filter(from_type == "ANGRY") %>%
+         select(from_id)
+      
+      if(length(ids_reaction$from_id) > 0){
+         text <- post_dados$comments %>%
+            filter(as.character(from_id) %in% ids_reaction$from_id) %>%
+            dplyr::select(message)
+         
+         mydfm <- getDFMatrix(text$message);
+         words_td <- topfeatures(mydfm, 50)
+         ggplot() +
+            geom_bar(stat = "identity",
+                     aes(x = reorder(names(words_td),as.numeric(words_td)), y = as.numeric(words_td)),
+                     fill = "magenta") +
+            ylab("Numero de ocorrencias") +
+            xlab("") +
+            geom_text( aes (x = reorder(names(words_td),as.numeric(words_td)), y = words_td, label = words_td ) , vjust = 0, hjust = 0, size = 2 ) +
+            coord_flip()
+      }
+   }
+   
+   plotPalavrasUsuariosSad = function() {
+      url <- input$urlpost
+      id_pagina <- getFBID(url)
+      data <- input$date
+      
+      # command file.path already controls for the OS
+      load(paste(workdir,"/fb_oauth",sep=""));
+      
+      data_inicio <- ymd(as.character(data)) + days(-2);
+      data_final <- ymd(as.character(data)) + days(2);
+      
+      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
+      id_post <- mypage$id[which(as.character(mypage$link)%in%url)]
+      
+      post_dados <- getPost(id_post, token=fb_oauth, n= 10000, reactions=TRUE)
+      
+      ids_reaction <- post_dados$reactions %>% 
+         filter(from_type == "SAD") %>%
+         select(from_id)
+      
+      if(length(ids_reaction$from_id) > 0){
+         text <- post_dados$comments %>%
+            filter(as.character(from_id) %in% ids_reaction$from_id) %>%
+            dplyr::select(message)
+         
+         mydfm <- getDFMatrix(text$message);
+         words_td <- topfeatures(mydfm, 50)
+         
+         ggplot() +
+            geom_bar(stat = "identity",
+                     aes(x = reorder(names(words_td),as.numeric(words_td)), y = as.numeric(words_td)),
+                     fill = "magenta") +
+            ylab("Numero de ocorrencias") +
+            xlab("") +
+            geom_text( aes (x = reorder(names(words_td),as.numeric(words_td)), y = words_td, label = words_td ) , vjust = 0, hjust = 0, size = 2 ) +
+            coord_flip()
+      }
+   }
+   
+   plotPalavrasUsuariosLove = function() {
+      url <- input$urlpost
+      id_pagina <- getFBID(url)
+      data <- input$date
+      
+      # command file.path already controls for the OS
+      load(paste(workdir,"/fb_oauth",sep=""));
+      
+      data_inicio <- ymd(as.character(data)) + days(-2);
+      data_final <- ymd(as.character(data)) + days(2);
+      
+      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
+      id_post <- mypage$id[which(as.character(mypage$link)%in%url)]
+      
+      post_dados <- getPost(id_post, token=fb_oauth, n= 10000, reactions=TRUE)
+      
+      ids_reaction <- post_dados$reactions %>% 
+         filter(from_type == "LOVE") %>%
+         select(from_id)
+      
+      if(length(ids_reaction$from_id) > 0){
+         text <- post_dados$comments %>%
+            filter(as.character(from_id) %in% ids_reaction$from_id) %>%
+            dplyr::select(message)
+         
+         mydfm <- getDFMatrix(text$message);
+         words_td <- topfeatures(mydfm, 50)
+         ggplot() +
+            geom_bar(stat = "identity",
+                     aes(x = reorder(names(words_td),as.numeric(words_td)), y = as.numeric(words_td)),
+                     fill = "magenta") +
+            ylab("Numero de ocorrencias") +
+            xlab("") +
+            geom_text( aes (x = reorder(names(words_td),as.numeric(words_td)), y = words_td, label = words_td ) , vjust = 0, hjust = 0, size = 2 ) +
+            coord_flip()
+      }
+   }
+   
+   plotPalavrasUsuariosHaha = function() {
+      url <- input$urlpost
+      id_pagina <- getFBID(url)
+      data <- input$date
+      
+      # command file.path already controls for the OS
+      load(paste(workdir,"/fb_oauth",sep=""));
+      
+      data_inicio <- ymd(as.character(data)) + days(-2);
+      data_final <- ymd(as.character(data)) + days(2);
+      
+      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
+      id_post <- mypage$id[which(as.character(mypage$link)%in%url)]
+      
+      post_dados <- getPost(id_post, token=fb_oauth, n= 10000, reactions=TRUE)
+      
+      ids_reaction <- post_dados$reactions %>% 
+         filter(from_type == "HAHA") %>%
+         select(from_id)
+      
+      if(length(ids_reaction$from_id) > 0){
+         text <- post_dados$comments %>%
+            filter(as.character(from_id) %in% ids_reaction$from_id) %>%
+            dplyr::select(message)
+         
+         mydfm <- getDFMatrix(text$message);
+         words_td <- topfeatures(mydfm, 50)
+         ggplot() +
+            geom_bar(stat = "identity",
+                     aes(x = reorder(names(words_td),as.numeric(words_td)), y = as.numeric(words_td)),
+                     fill = "magenta") +
+            ylab("Numero de ocorrencias") +
+            xlab("") +
+            geom_text( aes (x = reorder(names(words_td),as.numeric(words_td)), y = words_td, label = words_td ) , vjust = 0, hjust = 0, size = 2 ) +
+            coord_flip()
+      }
+   }
+   
+   
    plotPalavrasUsuariosMaisParticipativos = function() {
       url <- input$urlpost
       id_pagina <- getFBID(url)
@@ -340,7 +523,77 @@ server <- function(input, output) {
      }     
   )  
 
+  output$downloadPalavrasUsuariosAngry <- downloadHandler(
+     filename = function() {
+        paste("palavrasusuariosangry.png", sep = "")
+     },
+     content = function(file) {
+        device <- function(..., width, height) {
+           grDevices::png(..., width = width, height = height,
+                          res = 300, units = "in")
+        }
+        ggsave(file, plot = plotPalavrasUsuariosAngry(), device = device)
+        
+     }     
+  )  
+  
+  output$downloadPalavrasUsuariosSad <- downloadHandler(
+     filename = function() {
+        paste("palavrasusuariossad.png", sep = "")
+     },
+     content = function(file) {
+        device <- function(..., width, height) {
+           grDevices::png(..., width = width, height = height,
+                          res = 300, units = "in")
+        }
+        ggsave(file, plot = plotPalavrasUsuariosSad(), device = device)
+        
+     }     
+  )  
+  
+  output$downloadPalavrasUsuariosLove <- downloadHandler(
+     filename = function() {
+        paste("palavrasusuarioslove.png", sep = "")
+     },
+     content = function(file) {
+        device <- function(..., width, height) {
+           grDevices::png(..., width = width, height = height,
+                          res = 300, units = "in")
+        }
+        ggsave(file, plot = plotPalavrasUsuariosLove(), device = device)
+        
+     }     
+  )  
+  
+  output$downloadPalavrasUsuariosHaha <- downloadHandler(
+     filename = function() {
+        paste("palavrasusuarioshaha.png", sep = "")
+     },
+     content = function(file) {
+        device <- function(..., width, height) {
+           grDevices::png(..., width = width, height = height,
+                          res = 300, units = "in")
+        }
+        ggsave(file, plot = plotPalavrasUsuariosHaha(), device = device)
+        
+     }     
+  )  
 
+  
+  output$downloadComparacaoComentarios <- downloadHandler(
+     filename = function() {
+        paste("comparacaoComentarios", sep = "")
+     },
+     content = function(file) {
+        device <- function(..., width, height) {
+           grDevices::png(..., width = width, height = height,
+                          res = 300, units = "in")
+        }
+        ggsave(file, plot = plotComparacaoComentarios(), device = device)
+        
+     }     
+  )  
+  
   
 #####
 

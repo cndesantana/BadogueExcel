@@ -38,7 +38,17 @@ ui <- fluidPage(
    tags$hr("Usuários Participativos",br()),
       downloadButton("downloadUsuariosMaisParticipativos", "Download Lista de usuários que mais comentam"),
       downloadButton("downloadUsuariosMaisCurtidos", "Download Lista de usuários mais curtidos"),
-      downloadButton("downloadPalavrasUsuariosMaisParticipativos", "Download Lista palavras usadas por usuários que mais comentam")
+      downloadButton("downloadPalavrasUsuariosMaisParticipativos", "Download Lista palavras usadas por usuários que mais comentam"),
+   tags$hr("Usando Reações",br()),
+      downloadButton("downloadPalavrasUsuariosAngry", "Download Lista de palavras usadas por usuários que reagem com ANGRY"),
+   tags$hr(br()),
+      downloadButton("downloadPalavrasUsuariosSad", "Download Lista de palavras usadas por usuários que reagem com SAD"),
+   tags$hr(br()),
+      downloadButton("downloadPalavrasUsuariosLove", "Download Lista de palavras usadas por usuários que reagem com LOVE"),
+   tags$hr(br()),
+      downloadButton("downloadPalavrasUsuariosHaha", "Download Lista de palavras usadas por usuários que reagem com HAHA"),
+   tags$hr("Comparando Performance",br()),
+   downloadButton("downloadComparacaoComentarios", "Download Comparação entre post e posts mais comentados nos últimos 7 dias")
     ),
 
     # Main panel for displaying outputs ----
