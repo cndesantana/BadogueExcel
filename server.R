@@ -39,7 +39,8 @@ getIndiceDeSentimentoReactions <- function(reactions){
 }
 
 #workdir <- "/srv/shiny-server/cns/BadogueExcel"
-workdir <- "/home/cdesantana/DataSCOUT/Objectiva/BadogueExcel"
+#workdir <- "/home/cdesantana/DataSCOUT/Objectiva/BadogueExcel"
+workdir <- system("cat myworkdir",intern=TRUE)
 badwords <- c("scontent.xx.fbcdn.net","https","oh","oe","pra"," v ","como","para","de","do","da","das","dos","isso","esse","nisso","nesse","aquele","nesses","aqueles","aquela","aquelas","que","q","é","sr","governador","rui","costa","senhor")
 
 getTidySentimentos <- function(file){
