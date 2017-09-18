@@ -24,6 +24,20 @@ getFBID <- function(fburl){
    return(unlist(strsplit(httr::POST(url='https://findmyfbid.com',body=list(url = fburl), encode="json")$headers$`amp-redirect-to`,'/'))[5])
    }
 
+getIndiceDeSentimentoReactions <- function(reactions){
+   reacoes <- toupper(reactions)
+   allreacoes <- c("LOVE","HAHA","ANGRY","SAD");
+   ml <- length(which(sentimentos==allsentimentos[1]));#Positivo
+   mh <- length(which(sentimentos==allsentimentos[2]));#Positivo
+   ma <- length(which(sentimentos==allsentimentos[3]));#Negativo
+   ms <- length(which(sentimentos==allsentimentos[4]));#Negativo
+   mt <- ml + mh + ma + ms;#Total
+   
+   indicesentimento <- as.numeric((ml + mh - ma - ms)/mt)
+   
+   return(indicesentimento)
+}
+
 #workdir <- "/srv/shiny-server/cns/BadogueExcel"
 workdir <- "/home/cdesantana/DataSCOUT/Objectiva/BadogueExcel"
 badwords <- c("scontent.xx.fbcdn.net","https","oh","oe","pra"," v ","como","para","de","do","da","das","dos","isso","esse","nisso","nesse","aquele","nesses","aqueles","aquela","aquelas","que","q","é","sr","governador","rui","costa","senhor")
@@ -58,6 +72,36 @@ getDFMatrix <- function(text){
 options(shiny.fullstacktrace = TRUE)
 
 server <- function(input, output) {
+   
+   plotIndiceSentimentoReacoes = function(){
+      url <- input$urlpost
+      id_pagina <- getFBID(url)
+      data <- input$date
+      
+      # command file.path already controls for the OS
+      load(paste(workdir,"/fb_oauth",sep=""));
+      
+      data_inicio <- ymd(as.character(data)) + days(-3);
+      data_final <- ymd(as.character(data)) + days(3);
+      
+      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final), reactions = TRUE)
+      nposts <- length(mypage$link)
+      pos_post <- which(as.character(mypage$link)%in%url)
+      total_reactions <- (mypage$love_count + mypage$haha_count + mypage$sad_count + mypage$angry_count);
+      comments_count <- (mypage$love_count + mypage$haha_count - mypage$sad_count - mypage$angry_count)/total_reactions
+      
+      ggplot() +
+         geom_bar(stat = "identity",
+                  aes(x = reorder(1:nposts,as.numeric(comments_count)), 
+                      y = as.numeric(comments_count)),
+                  fill = ifelse(levels(reorder(1:nposts,as.numeric(comments_count)))==pos_post,"green","grey50")) +
+         theme(axis.text.x=element_blank(),
+               axis.ticks.x=element_blank()) +
+         ylab("Índice de Sentimento") +
+         xlab("Posts") +
+         geom_text( aes (x = reorder(1:nposts,as.numeric(comments_count)), y = round(as.numeric(comments_count),2), label = round(as.numeric(comments_count),2) ) , vjust = 0, hjust = 0, size = 2 )
+      
+   }
 
    plotComparacaoComentarios = function() {
       url <- input$urlpost
@@ -70,16 +114,15 @@ server <- function(input, output) {
       data_inicio <- ymd(as.character(data)) + days(-3);
       data_final <- ymd(as.character(data)) + days(3);
       
-      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final))
+      mypage <- getPage(id_pagina, token = fb_oauth, feed=TRUE, since= as.character(data_inicio), until=as.character(data_final), reactions = TRUE)
       nposts <- length(mypage$link)
       pos_post <- which(as.character(mypage$link)%in%url)
       comments_count <- mypage$comments_count
       
       ggplot() +
-         geom_bar(stat = "identity",
-                  aes(x = reorder(1:nposts,as.numeric(comments_count)), 
-                      y = as.numeric(comments_count)),
-                  fill = ifelse(levels(reorder(1:nposts,as.numeric(comments_count)))==pos_post,"green","grey50")) +
+         geom_bar(stat = "identity",aes(x = reorder(1:nposts,as.numeric(comments_count)), 
+                                        y = as.numeric(comments_count)),
+                  fill = ifelse(levels(reorder(1:nposts,as.numeric(comments_count)))==pos_post,"green","gray50")) +
          theme(axis.text.x=element_blank(),
                axis.ticks.x=element_blank()) +
          ylab("Numero de comentários") +
@@ -124,6 +167,9 @@ server <- function(input, output) {
             geom_text( aes (x = reorder(names(words_td),as.numeric(words_td)), y = words_td, label = words_td ) , vjust = 0, hjust = 0, size = 2 ) +
             coord_flip()
       }
+      else{
+         ggplot()
+      }
    }
    
    plotPalavrasUsuariosSad = function() {
@@ -162,6 +208,8 @@ server <- function(input, output) {
             xlab("") +
             geom_text( aes (x = reorder(names(words_td),as.numeric(words_td)), y = words_td, label = words_td ) , vjust = 0, hjust = 0, size = 2 ) +
             coord_flip()
+      }else{
+         ggplot()
       }
    }
    
@@ -200,6 +248,8 @@ server <- function(input, output) {
             xlab("") +
             geom_text( aes (x = reorder(names(words_td),as.numeric(words_td)), y = words_td, label = words_td ) , vjust = 0, hjust = 0, size = 2 ) +
             coord_flip()
+      }else{
+         ggplot()
       }
    }
    
@@ -238,6 +288,8 @@ server <- function(input, output) {
             xlab("") +
             geom_text( aes (x = reorder(names(words_td),as.numeric(words_td)), y = words_td, label = words_td ) , vjust = 0, hjust = 0, size = 2 ) +
             coord_flip()
+      }else{
+         ggplot()
       }
    }
    
@@ -590,6 +642,20 @@ server <- function(input, output) {
                           res = 300, units = "in")
         }
         ggsave(file, plot = plotComparacaoComentarios(), device = device)
+        
+     }     
+  )  
+  
+  output$downloadIndiceSentimentoReacoes <- downloadHandler(
+     filename = function() {
+        paste("indicesentimentoreacoes", sep = "")
+     },
+     content = function(file) {
+        device <- function(..., width, height) {
+           grDevices::png(..., width = width, height = height,
+                          res = 300, units = "in")
+        }
+        ggsave(file, plot = plotIndiceSentimentoReacoes(), device = device)
         
      }     
   )  

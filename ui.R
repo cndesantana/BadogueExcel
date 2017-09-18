@@ -40,6 +40,8 @@ ui <- fluidPage(
       downloadButton("downloadUsuariosMaisCurtidos", "Download Lista de usuários mais curtidos"),
       downloadButton("downloadPalavrasUsuariosMaisParticipativos", "Download Lista palavras usadas por usuários que mais comentam"),
    tags$hr("Usando Reações",br()),
+      downloadButton("downloadIndiceSentimentoReacoes", "Download Índice de Sentimento baseado em Reações"),
+   tags$hr(br()),
       downloadButton("downloadPalavrasUsuariosAngry", "Download Lista de palavras usadas por usuários que reagem com ANGRY"),
    tags$hr(br()),
       downloadButton("downloadPalavrasUsuariosSad", "Download Lista de palavras usadas por usuários que reagem com SAD"),
